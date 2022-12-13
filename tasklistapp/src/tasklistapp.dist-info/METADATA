@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Briefcase-Version: 0.3.11
+Name: tasklistapp
+Formal-Name: Task List App
+App-ID: com.example.tasklistapp
+Version: 0.0.1
+Home-page: https://example.com/tasklistapp
+Download-URL: https://example.com/tasklistapp
+Author: KU Group 2
+Author-email: NONE
+Summary: Task list app for the first assignment
