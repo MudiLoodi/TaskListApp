@@ -1,4 +1,1 @@
-1. Delete the correct simulation widget from the simulation window when the simulation is complete. 
-As of now, the simulation gets deleted correctly but its widget is not removed.
-
-2. Create a new widget in the simulation window when creating a new instance. As of now, the new instance would only show up after re-opening the app.
+1. Create a new widget in the simulation window when creating a new instance. As of now, the new instance would only show up after re-opening the app.

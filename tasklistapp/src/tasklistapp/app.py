@@ -118,18 +118,18 @@ class WorkflowApp(toga.App):
             # Delete the instance
             response = client.delete(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims/{last_sim_id if not sim_id else sim_id}", 
                                         auth=(self.username, self.password))
+        # If no sim_id is passed, then remove the last simulation.
         if not sim_id:
-            self.main_window.info_dialog(
-            "Success!",
-            f"Deleted instance: #{last_sim_id}")
+            # Get the last simulation button. [-3] to ignore the Delete and Create instance buttons.
+            instance_widget = self.sims_box.children[-3]
+            self.sims.popitem() # Remove the simualtion from the dict
+            self.sims_box.remove(instance_widget) 
+            self.main_window.info_dialog("Success!", f"Deleted simulation: #{last_sim_id}")
         
-        # Get the last simulation button. [-3] to ignore the Delete and Create instance buttons.
-        last_instance_widget = self.sims_box.children[-3]
-        # Removes the instance button from the layout and the simulation itself from the dict. 
-        self.sims.popitem()
-        self.sims_box.remove(last_instance_widget) 
+        # Removes the instance from the simulations dict and call show_sim_list() to update the list. 
+        self.sims.pop(sim_id)
+        self.show_sim_list()
 
-        
     async def show_enabled_activities(self, widget):
         self.sim_id = widget.id
         enabled_events = await self.get_enabled_events()
@@ -149,6 +149,7 @@ class WorkflowApp(toga.App):
         root = ET.fromstring(enabled_events.json())
         events = root.findall('event')
         self.show_activities_window(events)
+        
 
     def show_activities_window(self, events):
         """Shows the window that contains the activites for a given simulation."""
@@ -163,7 +164,6 @@ class WorkflowApp(toga.App):
 
     async def execute_activity(self, widget):
         event_id = widget.id
-        print(self.activities_window.content)
         async with httpx.AsyncClient() as client:
             response = await client.post(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims/{self.sim_id}/events/{event_id}",
                                     auth=(self.username, self.password))
