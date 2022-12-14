@@ -112,20 +112,19 @@ class WorkflowApp(toga.App):
         self.sims_box.add(delete_button)
         self.main_window.content = container
 
-    async def delete_instance(self, widget):
+    def delete_instance(self, widget, sim_id=None):
         last_sim_id = list(self.sims.items())[-1][0]
+        with httpx.Client() as client:
+            # Delete the instance
+            response = client.delete(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims/{last_sim_id if not sim_id else sim_id}", 
+                                        auth=(self.username, self.password))
+        if not sim_id:
+            self.main_window.info_dialog(
+            "Success!",
+            f"Deleted instance: #{last_sim_id}")
+        
         # Get the last simulation button. [-3] to ignore the Delete and Create instance buttons.
         last_instance_widget = self.sims_box.children[-3]
-        print(last_sim_id)
-        async with httpx.AsyncClient() as client:
-            # Delete the instance
-            response = await client.delete(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims/{last_sim_id}", 
-                                           auth=(self.username, self.password))
-            print("DETELE RESPONSE: ", response)
-        self.main_window.info_dialog(
-        "Success!",
-        f"Deleted instance: {last_sim_id}")
-        
         # Removes the instance button from the layout and the simulation itself from the dict. 
         self.sims.popitem()
         self.sims_box.remove(last_instance_widget) 
@@ -152,6 +151,7 @@ class WorkflowApp(toga.App):
         self.show_activities_window(events)
 
     def show_activities_window(self, events):
+        """Shows the window that contains the activites for a given simulation."""
         if self.simulationwindow != 0:
               self.activities_window.close()
         self.activities_window = toga.Window(title=f'Simulation #{self.sim_id}')
@@ -162,21 +162,18 @@ class WorkflowApp(toga.App):
         self.activities_window.show()
 
     async def execute_activity(self, widget):
-    # TODO: INSERT CODE HERE TO EXECUTE EVENT widget.id in simulation self.sim_id for graph self.graph.id
-    #       RETURN result in response
-        enabled_events = await self.get_enabled_events()
-        print(enabled_events)
-        #if len(response.text) == 0:
-        #else:
-        #    print(f'[!] {response.text}')
+        event_id = widget.id
+        print(self.activities_window.content)
+        async with httpx.AsyncClient() as client:
+            response = await client.post(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims/{self.sim_id}/events/{event_id}",
+                                    auth=(self.username, self.password))
+        if len(response.text) == 0:
+            enabled_events = await self.get_enabled_events()
+        else:
+            print(f'[!] {response.text}')
         if enabled_events:
             root = ET.fromstring(enabled_events.json())
             events = root.findall('event')
-            for i in events:
-                activity_id = i.attrib["id"]
-            async with httpx.AsyncClient() as client:
-                response = await client.post(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims/{self.sim_id}/events/{activity_id}",
-                                        auth=(self.username, self.password))
             self.update_activities_box(events)
         else:
             print("[!] No enabled events!")
@@ -198,8 +195,11 @@ class WorkflowApp(toga.App):
                 )
                 activities_box.add(e_button)
         else:
-            print("[!] No events to execute!")
-
+            self.main_window.info_dialog(
+            "Success!",
+            f"Simulation complete.\nSimulation #{self.sim_id} will now be deleted.")
+            self.delete_instance(None, self.sim_id)
+            self.activities_window.hide()
         self.activities_window.content = activities_box
 
 def main():
