@@ -113,20 +113,21 @@ class WorkflowApp(toga.App):
         self.main_window.content = container
 
     async def delete_instance(self, widget):
-        last_instance_id = list(self.sims.items())[-1][0]
+        last_sim_id = list(self.sims.items())[-1][0]
+        # Get the last simulation button. [-3] to ignore the Delete and Create instance buttons.
         last_instance_widget = self.sims_box.children[-3]
-        
+        print(last_sim_id)
         async with httpx.AsyncClient() as client:
             # Delete the instance
-            response = await client.delete(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims/{last_instance_id}", 
+            response = await client.delete(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims/{last_sim_id}", 
                                            auth=(self.username, self.password))
-        
+            print("DETELE RESPONSE: ", response)
         self.main_window.info_dialog(
         "Success!",
-        f"Deleted instance: {last_instance_id}")
+        f"Deleted instance: {last_sim_id}")
         
-        # Removes the instance button from the layout. 
-        # Takes effect after re-opening the app. Fix later
+        # Removes the instance button from the layout and the simulation itself from the dict. 
+        self.sims.popitem()
         self.sims_box.remove(last_instance_widget) 
 
         

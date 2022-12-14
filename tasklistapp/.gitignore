@@ -67,3 +67,6 @@ django/
 
 # Briefcase log files
 logs/
+
+#Misc
+pass
