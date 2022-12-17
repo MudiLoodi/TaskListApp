@@ -19,17 +19,17 @@ import xml.etree.ElementTree as ET
 class WorkflowApp(toga.App):
 
     def startup(self):
-        self.graph_id=1480020  # change to your own graph id
+        self.graph_id=1480020 
         self.simulationwindow=0
 
         login_box = toga.Box(style=Pack(direction=COLUMN))
         login = toga.Button(
             'Login',
             on_press=self.show_login_window,
-            style=Pack(padding=5)
+            style=Pack(padding=25, font_size=16, font_family="serif")
         )
         login_box.add(login)
-
+        
         self.main_window = toga.MainWindow(title=self.formal_name)
         self.main_window.content = login_box
         self.main_window.show()
@@ -37,35 +37,36 @@ class WorkflowApp(toga.App):
     def show_login_window(self, widget):
         self.second_window = toga.Window(title='Login')
         self.windows.add(self.second_window)
-        login_box = toga.Box(style=Pack(direction=COLUMN))
+        login_box = toga.Box(style=Pack(direction=COLUMN, alignment="center"))
 
-        username_box = toga.Box(style=Pack(direction=ROW, padding=5))
+        username_box = toga.Box(style=Pack(direction=COLUMN, padding=20))
         user_label = toga.Label(
-            'Username: ',
-            style=Pack(padding=(0, 10))
+            'Username ',
+            style=Pack(width=100,padding=(0, 10),font_family="serif", font_size=16)
         )
-        self.user_input = toga.TextInput(style=Pack(flex=1), placeholder='enter your DCR email', value='wadi.38@hotmail.com') # hint use "value = your email" to not have to retype it all the time
+        self.user_input = toga.TextInput(style=Pack(width=250,padding_left=10, font_family="serif", font_size=16), placeholder='Enter your DCR email')
         username_box.add(user_label)
         username_box.add(self.user_input)
 
-        password_box = toga.Box(style=Pack(direction=ROW, padding=5))
+        password_box = toga.Box(style=Pack(direction=COLUMN, padding=20))
         passwd_label = toga.Label(
-            'Password: ',
-            style=Pack(padding=(0, 10))
+            'Password ',
+            style=Pack(width=100,padding=(0, 10),font_family="serif", font_size=16)
+
         )
-        self.password_input = toga.PasswordInput(style=Pack(flex=1))
+        self.password_input = toga.PasswordInput(style=Pack(width=250,padding_left=10, font_family="serif", font_size=16))
         password_box.add(passwd_label)
         password_box.add(self.password_input)
 
         login_button = toga.Button(
             'Login',
             on_press=self.login,
-            style=Pack(padding=5)
+            style=Pack(padding=5,font_size=16, font_family="serif", width=200)
         )
         
         self.info_label = toga.Label(
             "",
-            style=Pack(padding=5, text_align="center", font_size=12))
+            style=Pack(padding=5, text_align="center", font_size=16, font_family="serif"))
 
         login_box.add(username_box)
         login_box.add(password_box)
@@ -83,10 +84,10 @@ class WorkflowApp(toga.App):
     
     async def login(self, widget):
         if not self.password_input.value and not self.user_input.value:
-            self.info_label.text = "Please enter your login credentials"
+            self.info_label.text = "Please enter your login credentials!"
             return
         elif not self.password_input.value or not self.user_input.value:
-            self.info_label.text = f"Please enter {'a password' if not self.password_input.value else 'an email'}"
+            self.info_label.text = f"Please enter {'a password!' if not self.password_input.value else 'an email!'}"
             return
         else:
             try:
@@ -105,7 +106,7 @@ class WorkflowApp(toga.App):
                 self.show_sim_list()
             # if credentials are wrong, catch 401 Unauthorized status
             except httpx.HTTPStatusError:    
-                self.main_window.info_dialog("Login Failed", "Your email or password is incorrect.\nPlease try again.")
+                self.main_window.error_dialog("Login Failed", "Your email or password is incorrect.\nPlease try again.")
             # if no simulations are present, catch the error, generate sims and login
             except ET.ParseError:
                 await self.generate_simulations()
@@ -114,29 +115,33 @@ class WorkflowApp(toga.App):
 
     def show_sim_list(self):
         container = toga.ScrollContainer(horizontal=False,)
-        self.sims_box = toga.Box(style=Pack(direction=COLUMN))
+        self.sims_box = toga.Box(style=Pack(direction=COLUMN, alignment="center"))
+        self.options_box = toga.Box(style=Pack(direction=ROW))
+        
         container.content = self.sims_box
         for id, name in self.sims.items():
             g_button = toga.Button(
                 name,
                 on_press=self.show_enabled_activities,
-                style=Pack(padding=5),
+                style=Pack(padding=5, font_size=16, font_family="serif"),
                 id = id
             )
             self.sims_box.add(g_button)
         g_button = toga.Button(
                 "Create new instance",
                 on_press=self.create_show_enabled_activities,
-                style=Pack(padding=5)
+                style=Pack(padding=5,flex=1, font_size=14, font_family="serif")
         )
         delete_button = toga.Button(
                 "Delete instance",
                 on_press=self.delete_instance,
-                style=Pack(padding=5)
+                style=Pack(padding=5,flex=1, font_size=14, font_family="serif")
         )
-        self.sims_box.add(g_button)
-        self.sims_box.add(delete_button)
+        self.options_box.add(g_button)
+        self.options_box.add(delete_button)
+        self.sims_box.add(self.options_box)
         self.main_window.content = container
+        self.sims_box.refresh()
 
     def delete_instance(self, widget, sim_id=None):
         try:
@@ -147,17 +152,17 @@ class WorkflowApp(toga.App):
                                             auth=(self.username, self.password))
             # If no sim_id is passed, then remove the last simulation.
             if not sim_id:
-                # Get the last simulation button. [-3] to ignore the Delete and Create instance buttons.
-                instance_widget = self.sims_box.children[-3]
+                # Get the last simulation button.
+                instance_widget = self.sims_box.children[-2]
                 self.sims.popitem() # Remove the simualtion from the dict
                 self.sims_box.remove(instance_widget) 
-                self.main_window.info_dialog("Success!", f"Deleted simulation: #{last_sim_id}")
-            
-            # Removes the instance from the simulations dict and call show_sim_list() to update the list. 
-            self.sims.pop(sim_id)
-            self.show_sim_list()
+                self.main_window.info_dialog("Success!", f"Deleted simulation: #{last_sim_id}.")
+            else:
+                # Removes the instance from the simulations dict and call show_sim_list() to update the list. 
+                self.sims.pop(sim_id)
+                self.show_sim_list()
         except IndexError:
-            self.main_window.info_dialog("Oh No!", "No simulations to delete!")
+            self.main_window.error_dialog("Oh No!", "No simulations to delete!")
             self.show_sim_list()
             
     async def show_enabled_activities(self, widget):
@@ -228,7 +233,7 @@ class WorkflowApp(toga.App):
                 e_button = toga.Button(
                     text=e.attrib['label'],
                     on_press=self.execute_activity,
-                    style=Pack(padding=5),
+                    style=Pack(padding=5, font_size=14, font_family="serif"),
                     id=e.attrib['id'],
                 )
                 activities_box.add(e_button)
