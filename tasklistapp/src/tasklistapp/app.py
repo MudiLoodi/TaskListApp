@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 class WorkflowApp(toga.App):
 
     def startup(self):
-        self.graph_id=1480020 
+        self.graph_id=1480063
         self.simulationwindow=0
 
         login_box = toga.Box(style=Pack(direction=COLUMN))
