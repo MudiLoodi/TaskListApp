@@ -13,6 +13,7 @@ description = "Task list app for the first assignment"
 icon = "src/tasklistapp/resources/tasklistapp"
 sources = ['src/tasklistapp']
 requires = [
+    "httpx",
 ]
 
 
