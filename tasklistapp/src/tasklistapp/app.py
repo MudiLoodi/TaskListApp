@@ -12,7 +12,7 @@ TODO:
 import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
-
+import asyncio
 import httpx
 import xml.etree.ElementTree as ET
 
@@ -85,9 +85,13 @@ class WorkflowApp(toga.App):
     async def login(self, widget):
         if not self.password_input.value and not self.user_input.value:
             self.info_label.text = "Please enter your login credentials!"
+            await asyncio.sleep(2)
+            self.info_label.text = ""
             return
         elif not self.password_input.value or not self.user_input.value:
             self.info_label.text = f"Please enter {'a password!' if not self.password_input.value else 'an email!'}"
+            await asyncio.sleep(2)
+            self.info_label.text = ""
             return
         else:
             try:
