@@ -9,6 +9,7 @@ TODO:
     3) Extra: Add a button to delete the simulation in the "Instance window".
 
 """
+from services import database_connection as dbc
 import toga
 from toga.style import Pack
 from toga.style.pack import COLUMN, ROW
@@ -103,6 +104,9 @@ class WorkflowApp(toga.App):
                 self.sims = {}
                 self.username = self.user_input.value
                 self.password = self.password_input.value
+                dbc.db_connect()
+                role = dbc.execute_query("get_dcr_role", {'email': self.username})
+                print(f'[i] Role: {role.fetchone()[0]}')
                 for s in root.findall("trace"):
                     print(f"[i] id: {s.attrib['id']}, title: {s.attrib['title']}")
                     self.sims[s.attrib['id']] = "Instance:"+s.attrib['id']
