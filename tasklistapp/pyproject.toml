@@ -11,9 +11,11 @@ author_email = "NONE"
 formal_name = "Task List App"
 description = "Task list app for the first assignment"
 icon = "src/tasklistapp/resources/tasklistapp"
-sources = ['src/tasklistapp']
+sources = ['src/tasklistapp',
+            'src/tasklistapp/services']
 requires = [
     "httpx",
+    "mysql-connector-python"
 ]
 
 
