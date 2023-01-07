@@ -15,7 +15,8 @@ sources = ['src/tasklistapp',
             'src/tasklistapp/services']
 requires = [
     "httpx",
-    "mysql-connector-python"
+    "mysql-connector-python",
+    "mysql-connector"
 ]
 
 
