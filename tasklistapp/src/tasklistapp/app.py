@@ -1,14 +1,3 @@
-
-"""
-A Workflow App using the DCR Active Repository
-
-TODO:
-    0) Fill in the template and make sure you understand how it works
-    1) Make the app show only enabled-or-pending activities - and it shows an exclamation mark (!) After a pending activity
-    2) When there are no more enabled-or-pending activities it deletes the simulation id.
-    3) Extra: Add a button to delete the simulation in the "Instance window".
-
-"""
 from services import database_connection as dbc
 import toga
 from toga.style import Pack
@@ -45,7 +34,7 @@ class WorkflowApp(toga.App):
             'Username ',
             style=Pack(width=100,padding=(0, 10),font_family="serif", font_size=16)
         )
-        self.user_input = toga.TextInput(style=Pack(width=250,padding_left=10, font_family="serif", font_size=16), placeholder='Enter your DCR email')
+        self.user_input = toga.TextInput(style=Pack(width=250,padding_left=10, font_family="serif", font_size=16), placeholder='Enter your DCR email', value="wadi.38@hotmail.com")
         username_box.add(user_label)
         username_box.add(self.user_input)
 
@@ -162,8 +151,10 @@ class WorkflowApp(toga.App):
             if not sim_id:
                 # Get the last simulation button.
                 instance_widget = self.sims_box.children[-2]
-                self.sims.popitem() # Remove the simualtion from the dict
+                last_instance_sim = self.sims.popitem() # Remove the simualtion from the dict
                 self.sims_box.remove(instance_widget) 
+                # Deletes the last instance from the DB.
+                dbc.execute_query("delete_latest_instance", (last_instance_sim[0], ))
                 self.main_window.info_dialog("Success!", f"Deleted simulation: #{last_sim_id}.")
             else:
                 # Removes the instance from the simulations dict and call show_sim_list() to update the list. 
@@ -186,6 +177,8 @@ class WorkflowApp(toga.App):
             response = await client.post(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims",
                                          auth=(self.username, self.password))
             self.sim_id = response.headers['simulationid']
+            
+            # Get new response after creating a new instance.
             response = await client.get(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims",
                                          auth=(self.username, self.password))
             enabled_events = await self.get_enabled_events()
@@ -197,6 +190,9 @@ class WorkflowApp(toga.App):
         # Add the new instance to the dict
         for sub_elem in root.findall("trace"):
             self.sims[sub_elem.attrib['id']] = "Instance:"+sub_elem.attrib['id']
+        # Insert the new instance into the DB.
+        dbc.execute_query("insert_new_instance", (f"{self.graph_id}", f"{list(self.sims.keys())[-1]}", "HPVscreening"))
+        
         # call show_sim_list() to update the instance list to show the newly added instance
         self.show_sim_list()
         self.show_activities_window(events)
