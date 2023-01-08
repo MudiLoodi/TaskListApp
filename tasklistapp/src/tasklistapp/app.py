@@ -34,7 +34,7 @@ class WorkflowApp(toga.App):
             'Username ',
             style=Pack(width=100,padding=(0, 10),font_family="serif", font_size=16)
         )
-        self.user_input = toga.TextInput(style=Pack(width=250,padding_left=10, font_family="serif", font_size=16), placeholder='Enter your DCR email', value="wadi.38@hotmail.com")
+        self.user_input = toga.TextInput(style=Pack(width=250,padding_left=10, font_family="serif", font_size=16), placeholder='Enter your DCR email')
         username_box.add(user_label)
         username_box.add(self.user_input)
 
@@ -67,10 +67,19 @@ class WorkflowApp(toga.App):
         self.second_window.show()
         
     async def generate_simulations(self):
+        """Generates a new simulation and inserts it into the database.
+        """
         async with httpx.AsyncClient() as client:
             response = await client.post(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims",
                                         auth=(self.user_input.value, self.password_input.value))
-            print(response)
+            response = await client.get(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims",
+                                        auth=(self.user_input.value, self.password_input.value))
+            root = ET.fromstring(response.text)
+            connection = dbc.db_connect()
+            for elem in root.findall("trace"):
+                dbc.execute_query("insert_new_instance", (f"{self.graph_id}", f"{elem.attrib['id']}", "HPVscreening"))
+            connection.close()
+            print("Generate simulations:", response)
     
     async def login(self, widget):
         if not self.password_input.value and not self.user_input.value:
@@ -88,43 +97,45 @@ class WorkflowApp(toga.App):
                 async with httpx.AsyncClient() as client:
                     response = await client.get(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims",
                                         auth=(self.user_input.value, self.password_input.value))
-                response.raise_for_status()                
-                root = ET.fromstring(response.text)
-                self.sims = {}
-                self.username = self.user_input.value
-                self.password = self.password_input.value
-                dbc.db_connect()
-                role = dbc.execute_query("get_dcr_role", {'email': self.username})
-                print(f'[i] Role: {role.fetchone()[0]}')
-                for s in root.findall("trace"):
-                    print(f"[i] id: {s.attrib['id']}, title: {s.attrib['title']}")
-                    self.sims[s.attrib['id']] = "Instance:"+s.attrib['id']
-                self.second_window.close()
-                self.show_sim_list()
-            # if credentials are wrong, catch 401 Unauthorized status
+                    response.raise_for_status()         
+                # If no simulations are present, generate a simulation and re-login.
+                if len(response.text) == 0:
+                    await self.generate_simulations()
+                    await self.login(None)
+                else:
+                    self.username = self.user_input.value
+                    self.password = self.password_input.value
+                    dbc.db_connect()
+                    role = dbc.execute_query("get_dcr_role", {'email': self.username})
+                    print(f'[i] Role: {role.fetchone()[0]}')
+                    self.second_window.close()
+                    self.show_sim_list()
+            # If credentials are wrong, catch 401 Unauthorized status.
             except httpx.HTTPStatusError:    
                 self.main_window.error_dialog("Login Failed", "Your email or password is incorrect.\nPlease try again.")
-            # if no simulations are present, catch the error, generate sims and login
-            except ET.ParseError:
-                await self.generate_simulations()
-                await self.login(None)
         
-
     def show_sim_list(self):
+        """Shows the simulation list (homepage).
+        """
         container = toga.ScrollContainer(horizontal=False,)
         self.sims_box = toga.Box(style=Pack(direction=COLUMN, alignment="center"))
         self.options_box = toga.Box(style=Pack(direction=ROW))
-        
         container.content = self.sims_box
-        for id, name in self.sims.items():
-            g_button = toga.Button(
-                name,
+        
+        # Add the instances from the database into the simulation page.
+        query = dbc.execute_query("print_instances_table", None)
+        record_res = query.fetchall()
+        
+        for column in record_res:
+            instance_button = toga.Button(
+                f"Instance {column[1]}",
                 on_press=self.show_enabled_activities,
                 style=Pack(padding=5, font_size=16, font_family="serif"),
-                id = id
+                id = column[1]
             )
-            self.sims_box.add(g_button)
-        g_button = toga.Button(
+            self.sims_box.add(instance_button)
+            
+        create_button = toga.Button(
                 "Create new instance",
                 on_press=self.create_show_enabled_activities,
                 style=Pack(padding=5,flex=1, font_size=14, font_family="serif")
@@ -134,15 +145,23 @@ class WorkflowApp(toga.App):
                 on_press=self.delete_instance,
                 style=Pack(padding=5,flex=1, font_size=14, font_family="serif")
         )
-        self.options_box.add(g_button)
+        self.options_box.add(create_button)
         self.options_box.add(delete_button)
         self.sims_box.add(self.options_box)
         self.main_window.content = container
         self.sims_box.refresh()
 
     def delete_instance(self, widget, sim_id=None):
+        """Deletes a simulation instance.
+        
+        Args:
+        -
+            * sim_id (str, optional): The ID of the simulation to be deleted. Defaults to None.
+        """
         try:
-            last_sim_id = list(self.sims.items())[-1][0]
+            query = dbc.execute_query("print_instances_table", None)
+            record_res = query.fetchall()
+            last_sim_id = record_res[-1][1]
             with httpx.Client() as client:
                 # Delete the instance
                 response = client.delete(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims/{last_sim_id if not sim_id else sim_id}", 
@@ -151,14 +170,14 @@ class WorkflowApp(toga.App):
             if not sim_id:
                 # Get the last simulation button.
                 instance_widget = self.sims_box.children[-2]
-                last_instance_sim = self.sims.popitem() # Remove the simualtion from the dict
+                last_instance_sim = last_sim_id
                 self.sims_box.remove(instance_widget) 
                 # Deletes the last instance from the DB.
-                dbc.execute_query("delete_latest_instance", (last_instance_sim[0], ))
+                dbc.execute_query("delete_instance", (last_instance_sim, ))
                 self.main_window.info_dialog("Success!", f"Deleted simulation: #{last_sim_id}.")
             else:
-                # Removes the instance from the simulations dict and call show_sim_list() to update the list. 
-                self.sims.pop(sim_id)
+                # Removes the instance from the DB and call show_sim_list() to update the list. 
+                dbc.execute_query("delete_instance", (sim_id, ))
                 self.show_sim_list()
         except IndexError:
             self.main_window.error_dialog("Oh No!", "No simulations to delete!")
@@ -173,27 +192,26 @@ class WorkflowApp(toga.App):
         self.show_activities_window(events)
 
     async def create_show_enabled_activities(self, widget):
+        """Creates a new simulation instance."""
+        
         async with httpx.AsyncClient() as client:
             response = await client.post(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims",
                                          auth=(self.username, self.password))
             self.sim_id = response.headers['simulationid']
             
-            # Get new response after creating a new instance.
+            # Retrieve the DCR Process Model instance after creating the new instance.
             response = await client.get(f"https://repository.dcrgraphs.net/api/graphs/{self.graph_id}/sims",
                                          auth=(self.username, self.password))
             enabled_events = await self.get_enabled_events()
-        print(enabled_events.json())
         root = ET.fromstring(enabled_events.json())
         events = root.findall('event')
-        
+
         root = ET.fromstring(response.text)
-        # Add the new instance to the dict
-        for sub_elem in root.findall("trace"):
-            self.sims[sub_elem.attrib['id']] = "Instance:"+sub_elem.attrib['id']
+        last_instance = root.findall("trace")[-1]
         # Insert the new instance into the DB.
-        dbc.execute_query("insert_new_instance", (f"{self.graph_id}", f"{list(self.sims.keys())[-1]}", "HPVscreening"))
+        dbc.execute_query("insert_new_instance", (f"{self.graph_id}", f"{last_instance.attrib['id']}", "HPVscreening"))
         
-        # call show_sim_list() to update the instance list to show the newly added instance
+        # Call show_sim_list() to update the instance list to show the newly added instance.
         self.show_sim_list()
         self.show_activities_window(events)
         
