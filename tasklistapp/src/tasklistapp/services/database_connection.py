@@ -8,7 +8,8 @@ sql_query_template = {}
 
 sql_query_template["get_dcr_role"] = f"SELECT Role FROM DCRUsers WHERE Email = %(email)s"
 sql_query_template["insert_new_instance"] = "INSERT INTO instances VALUES (%s, %s, %s)"
-sql_query_template["delete_latest_instance"] = "DELETE FROM instances WHERE SimsID = %s"
+sql_query_template["delete_instance"] = "DELETE FROM instances WHERE SimsID = %s"
+sql_query_template["print_instances_table"] = "SELECT * FROM instances"
 
 def db_connect():
     cnx = mysql.connector.connect(user="group2",
@@ -30,9 +31,7 @@ def execute_query(sql_query_name, data_dict):
         cursor.execute(sql_query_template[sql_query_name], data_dict)
         if sql_query_template[sql_query_name].startswith("SELECT"):
             res = cursor
-        if sql_query_template[sql_query_name].startswith("INSERT"):
-            cnx.commit()
-        if sql_query_template[sql_query_name].startswith("DELETE"):
+        if sql_query_template[sql_query_name].startswith("INSERT") or sql_query_template[sql_query_name].startswith("DELETE"):
             cnx.commit()
         cursor.close()
         cnx.close()
