@@ -106,8 +106,9 @@ class WorkflowApp(toga.App):
                     self.username = self.user_input.value
                     self.password = self.password_input.value
                     dbc.db_connect()
-                    role = dbc.execute_query("get_dcr_role", {'email': self.username})
-                    print(f'[i] Role: {role.fetchone()[0]}')
+                    get_role_query = dbc.execute_query("get_dcr_role", {'email': self.username})
+                    self.role = get_role_query.fetchone()[0]
+                    print(f'[i] Role: {self.role}')
                     self.second_window.close()
                     self.show_sim_list()
             # If credentials are wrong, catch 401 Unauthorized status.
@@ -252,13 +253,14 @@ class WorkflowApp(toga.App):
         activities_box = toga.Box(style=Pack(direction=COLUMN))
         if len(events) >= 1:
             for e in events:
-                e_button = toga.Button(
-                    text=e.attrib['label'],
-                    on_press=self.execute_activity,
-                    style=Pack(padding=5, font_size=14, font_family="serif"),
-                    id=e.attrib['id'],
-                )
-                activities_box.add(e_button)
+                if self.role in e.attrib['roles'].replace(" ", "").split(','):
+                    e_button = toga.Button(
+                        text=e.attrib['label'],
+                        on_press=self.execute_activity,
+                        style=Pack(padding=5, font_size=14, font_family="serif"),
+                        id=e.attrib['id'],
+                    )
+                    activities_box.add(e_button)
         else:
             self.main_window.info_dialog(
             "Success!",
