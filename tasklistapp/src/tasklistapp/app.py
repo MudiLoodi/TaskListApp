@@ -171,10 +171,9 @@ class WorkflowApp(toga.App):
             if not sim_id:
                 # Get the last simulation button.
                 instance_widget = self.sims_box.children[-2]
-                last_instance_sim = last_sim_id
                 self.sims_box.remove(instance_widget) 
                 # Deletes the last instance from the DB.
-                dbc.execute_query("delete_instance", (last_instance_sim, ))
+                dbc.execute_query("delete_instance", (last_sim_id, ))
                 self.main_window.info_dialog("Success!", f"Deleted simulation: #{last_sim_id}.")
             else:
                 # Removes the instance from the DB and call show_sim_list() to update the list. 
@@ -254,6 +253,7 @@ class WorkflowApp(toga.App):
         info_label = toga.Label("",style=Pack(padding=5, text_align="center", font_size=16, font_family="serif"))
         if len(events) >= 1:
             for e in events:
+                print( e.attrib)
                 # Only create and show tasks relevant to the current user role. 
                 if self.role in e.attrib['roles'].replace(" ", "").split(','):
                     e_button = toga.Button(
