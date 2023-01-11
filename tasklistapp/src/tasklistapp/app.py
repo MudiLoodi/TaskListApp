@@ -34,7 +34,7 @@ class WorkflowApp(toga.App):
             'Username ',
             style=Pack(width=100,padding=(0, 10),font_family="serif", font_size=16)
         )
-        self.user_input = toga.TextInput(style=Pack(width=250,padding_left=10, font_family="serif", font_size=16), placeholder='Enter your DCR email', value="wadi.38@hotmail.com")
+        self.user_input = toga.TextInput(style=Pack(width=250,padding_left=10, font_family="serif", font_size=16), placeholder='Enter your DCR email')
         username_box.add(user_label)
         username_box.add(self.user_input)
 
