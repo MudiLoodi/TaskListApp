@@ -2,7 +2,8 @@
 #pip.main(['install','mysql-connector-python']) # Run only once to enable mysql
 import mysql.connector
 
-db_password = 'e5WcRH6bSP7pT2L'
+f = open("password", "r")
+db_password = f.read()
 
 sql_query_template = {}
 
