@@ -1,5 +1,4 @@
 import mysql.connector
-db_password = "e5WcRH6bSP7pT2L"
 
 sql_query_template = {}
 
@@ -10,7 +9,7 @@ sql_query_template["print_instances_table"] = "SELECT * FROM instances"
 
 def db_connect():
     cnx = mysql.connector.connect(user="group2",
-                                password=db_password,
+                                password="db_password",
                                 host="tasklistdb.mysql.database.azure.com",
                                 port=3306,
                                 database="tasklistdatabase",

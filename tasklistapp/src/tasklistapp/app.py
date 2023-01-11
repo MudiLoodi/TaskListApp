@@ -253,7 +253,6 @@ class WorkflowApp(toga.App):
         info_label = toga.Label("",style=Pack(padding=5, text_align="center", font_size=16, font_family="serif"))
         if len(events) >= 1:
             for e in events:
-                print( e.attrib)
                 # Only create and show tasks relevant to the current user role. 
                 if self.role in e.attrib['roles'].replace(" ", "").split(','):
                     e_button = toga.Button(
