@@ -34,7 +34,7 @@ class WorkflowApp(toga.App):
             'Username ',
             style=Pack(width=100,padding=(0, 10),font_family="serif", font_size=16)
         )
-        self.user_input = toga.TextInput(style=Pack(width=250,padding_left=10, font_family="serif", font_size=16), placeholder='Enter your DCR email')
+        self.user_input = toga.TextInput(style=Pack(width=250,padding_left=10, font_family="serif", font_size=16), placeholder='Enter your DCR email', value="wadi.38@hotmail.com")
         username_box.add(user_label)
         username_box.add(self.user_input)
 
@@ -251,8 +251,10 @@ class WorkflowApp(toga.App):
 
     def update_activities_box(self, events):
         activities_box = toga.Box(style=Pack(direction=COLUMN))
+        info_label = toga.Label("",style=Pack(padding=5, text_align="center", font_size=16, font_family="serif"))
         if len(events) >= 1:
             for e in events:
+                # Only create and show tasks relevant to the current user role. 
                 if self.role in e.attrib['roles'].replace(" ", "").split(','):
                     e_button = toga.Button(
                         text=e.attrib['label'],
@@ -261,6 +263,9 @@ class WorkflowApp(toga.App):
                         id=e.attrib['id'],
                     )
                     activities_box.add(e_button)
+                else:
+                    info_label.text = f"There are no tasks relevant for your role '{self.role}'."
+            activities_box.add(info_label)
         else:
             self.main_window.info_dialog(
             "Success!",
